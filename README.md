@@ -109,7 +109,14 @@ bun run db:studio
 ### 4. Jalankan Server
 
 ```sh
+# Development (dengan hot-reload)
 bun run dev
+
+# Production build
+bun run build
+
+# Menjalankan hasil build
+bun run start
 ```
 
 Server akan aktif di `http://localhost:3000`.
