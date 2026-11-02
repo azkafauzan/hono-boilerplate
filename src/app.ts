@@ -6,8 +6,8 @@ import { createRouter } from "@/lib/create-router"
 import { configureOpenAPI } from "@/lib/openapi"
 import { errorHandler, notFoundHandler } from "@/middlewares/error.middleware"
 import { requestLogger } from "@/middlewares/logger.middleware"
-import { healthRouter } from "@/modules/health"
-import { itemsRouter } from "@/modules/items"
+import { healthRouter } from "@/modules/health/health.routes"
+import { itemsRouter } from "@/modules/items/items.routes"
 import pkg from "../package.json"
 
 /**

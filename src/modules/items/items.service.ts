@@ -1,8 +1,8 @@
 import { count, desc, eq } from "drizzle-orm"
 import { db } from "@/db"
+import { items } from "@/db/schema"
 import type { PaginationQuery } from "@/lib/schemas"
 import type { CreateItemInput, UpdateItemInput } from "./items.schema"
-import { items } from "./items.table"
 
 export const itemsService = {
   async findAll({ page, limit }: PaginationQuery) {

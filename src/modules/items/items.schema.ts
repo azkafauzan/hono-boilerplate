@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi"
 import { createSchemaFactory } from "drizzle-zod"
-import { items } from "./items.table"
+import { items } from "@/db/schema"
 
 const { createSelectSchema, createInsertSchema } = createSchemaFactory({ zodInstance: z })
 

@@ -34,7 +34,7 @@ hono-boilerplate/
 │   ├── db/
 │   │   ├── index.ts              # Drizzle client, pool error logging, verify/close helpers
 │   │   ├── columns.ts            # Kolom reusable (timestamps)
-│   │   └── schema.ts             # Barrel semua tabel module (dipakai drizzle-kit)
+│   │   └── schema.ts             # Definisi seluruh tabel Drizzle (dipakai drizzle-kit)
 │   ├── lib/
 │   │   ├── create-router.ts      # OpenAPIHono factory + AppEnv & AppRouteHandler types
 │   │   ├── logger.ts             # Root Pino logger
@@ -47,30 +47,26 @@ hono-boilerplate/
 │   └── modules/
 │       ├── health/               # Health check (200 OK / 503 Degraded)
 │       └── items/                # Contoh CRUD module
-│           ├── index.ts          # Wiring router (route ↔ handler)
-│           ├── items.table.ts    # Tabel Drizzle
-│           ├── items.schema.ts   # Zod schema (diturunkan dari tabel via drizzle-zod)
-│           ├── items.service.ts  # Akses data
-│           ├── items.routes.ts   # Definisi route OpenAPI
-│           └── items.handlers.ts # HTTP handlers
+│           ├── items.controller.ts # HTTP handlers (AppRouteHandler)
+│           ├── items.schema.ts     # Zod schema (diturunkan dari tabel via drizzle-zod)
+│           ├── items.service.ts    # Akses data / query database
+│           └── items.routes.ts     # Definisi route OpenAPI & router wiring
 └── test/
-    └── app.test.ts               # Unit & integration tests
+    ├── app.test.ts               # Core app & health tests
+    └── items.e2e.ts              # Module E2E tests
 ```
 
 ### Menambah Module Baru
 
-1. Salin folder `src/modules/items` menjadi `src/modules/<nama>` lalu sesuaikan isinya.
-2. Daftarkan tabel baru di `src/db/schema.ts`:
-
-   ```ts
-   export * from "@/modules/<nama>/<nama>.table"
-   ```
+1. Tambahkan definisi tabel baru di `src/db/schema.ts`.
+2. Salin folder `src/modules/items` menjadi `src/modules/<name>` (`<name>.controller.ts`, `<name>.schema.ts`, `<name>.service.ts`, `<name>.routes.ts`) lalu sesuaikan isinya.
 3. Mount router di `src/app.ts`:
 
    ```ts
-   app.route("/<nama>", <nama>Router)
+   app.route("/<name>", <name>Router)
    ```
-4. Jalankan `bun run db:generate` (atau `db:push` saat development).
+4. Tambahkan pengujian di `test/<name>.e2e.ts`.
+5. Jalankan `bun run db:generate` (atau `db:push` saat development).
 
 ---
 
@@ -111,12 +107,6 @@ bun run db:studio
 ```sh
 # Development (dengan hot-reload)
 bun run dev
-
-# Production build
-bun run build
-
-# Menjalankan hasil build
-bun run start
 ```
 
 Server akan aktif di `http://localhost:3000`.
@@ -134,7 +124,7 @@ Setelah server berjalan, buka browser dan akses:
 ## Testing & Code Quality
 
 ```sh
-# Menjalankan unit tests (log otomatis silent saat NODE_ENV=test)
+# Menjalankan unit & E2E tests (log otomatis silent saat NODE_ENV=test)
 bun test
 
 # Cek lint & format tanpa mengubah file (cocok untuk CI)

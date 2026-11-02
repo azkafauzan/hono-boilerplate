@@ -1,4 +1,5 @@
 import { createRoute } from "@hono/zod-openapi"
+import { createRouter } from "@/lib/create-router"
 import { errorResponses, jsonContent, jsonContentRequired } from "@/lib/openapi"
 import {
   ApiResponseSchema,
@@ -6,6 +7,7 @@ import {
   PaginatedResponseSchema,
   PaginationQuerySchema,
 } from "@/lib/schemas"
+import * as controller from "./items.controller"
 import { CreateItemSchema, ItemSchema, UpdateItemSchema } from "./items.schema"
 
 const tags = ["Items"]
@@ -89,3 +91,10 @@ export type GetOneRoute = typeof getOne
 export type CreateRoute = typeof create
 export type UpdateRoute = typeof update
 export type RemoveRoute = typeof remove
+
+export const itemsRouter = createRouter()
+  .openapi(list, controller.list)
+  .openapi(getOne, controller.getOne)
+  .openapi(create, controller.create)
+  .openapi(update, controller.update)
+  .openapi(remove, controller.remove)

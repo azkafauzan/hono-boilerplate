@@ -1,3 +1,12 @@
-// Barrel of every Drizzle table. Used by drizzle-kit (see drizzle.config.ts)
-// and by the relational query API (`db.query.*`). Register new module tables here.
-export * from "@/modules/items/items.table"
+import { integer, pgTable, text } from "drizzle-orm/pg-core"
+import { timestamps } from "@/db/columns"
+
+export const items = pgTable("items", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  item: text("item").notNull(),
+  quantity: integer("quantity").notNull().default(0),
+  ...timestamps,
+})
+
+export type Item = typeof items.$inferSelect
+export type NewItem = typeof items.$inferInsert
