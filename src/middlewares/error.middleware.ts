@@ -1,7 +1,7 @@
 import type { ErrorHandler, NotFoundHandler } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { env } from "../config/env"
-import { errorResponse } from "../lib/response"
+import { env } from "@/config/env"
+import { errorResponse } from "@/lib/response"
 
 export const errorHandler: ErrorHandler = (err, c) => {
   if (err instanceof HTTPException) {

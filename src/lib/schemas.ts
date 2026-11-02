@@ -75,4 +75,3 @@ export const ApiErrorSchema = z
     error: z.unknown().optional(),
   })
   .openapi("ApiError")
-

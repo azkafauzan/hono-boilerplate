@@ -1,7 +1,7 @@
 import { describe, expect, it, spyOn } from "bun:test"
-import { createApp } from "../src/app"
-import { db, verifyDbConnection } from "../src/db"
-import { itemsService } from "../src/modules/items/items.service"
+import { createApp } from "@/app"
+import { db, verifyDbConnection } from "@/db"
+import { itemsService } from "@/modules/items/items.service"
 
 const app = createApp()
 

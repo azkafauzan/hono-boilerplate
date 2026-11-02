@@ -8,4 +8,3 @@ export const timestamps = {
     .$onUpdate(() => new Date())
     .notNull(),
 }
-

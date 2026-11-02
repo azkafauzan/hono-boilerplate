@@ -1,6 +1,6 @@
 import { count, desc, eq } from "drizzle-orm"
-import { db } from "../../db"
-import type { PaginationQuery } from "../../lib/schemas"
+import { db } from "@/db"
+import type { PaginationQuery } from "@/lib/schemas"
 import type { CreateItemInput, UpdateItemInput } from "./items.schema"
 import { items } from "./items.table"
 
@@ -36,4 +36,3 @@ export const itemsService = {
     return item ?? null
   },
 }
-

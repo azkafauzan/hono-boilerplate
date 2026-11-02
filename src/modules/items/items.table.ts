@@ -1,5 +1,5 @@
 import { integer, pgTable, text } from "drizzle-orm/pg-core"
-import { timestamps } from "../../db/columns"
+import { timestamps } from "@/db/columns"
 
 export const items = pgTable("items", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -10,4 +10,3 @@ export const items = pgTable("items", {
 
 export type Item = typeof items.$inferSelect
 export type NewItem = typeof items.$inferInsert
-

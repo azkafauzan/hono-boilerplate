@@ -1,11 +1,11 @@
 import { createRoute } from "@hono/zod-openapi"
-import { errorResponses, jsonContent, jsonContentRequired } from "../../lib/openapi"
+import { errorResponses, jsonContent, jsonContentRequired } from "@/lib/openapi"
 import {
   ApiResponseSchema,
   IdParamSchema,
   PaginatedResponseSchema,
   PaginationQuerySchema,
-} from "../../lib/schemas"
+} from "@/lib/schemas"
 import { CreateItemSchema, ItemSchema, UpdateItemSchema } from "./items.schema"
 
 const tags = ["Items"]
@@ -89,4 +89,3 @@ export type GetOneRoute = typeof getOne
 export type CreateRoute = typeof create
 export type UpdateRoute = typeof update
 export type RemoveRoute = typeof remove
-

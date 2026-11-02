@@ -1,5 +1,5 @@
-import type { AppRouteHandler } from "../../lib/create-router"
-import { errorResponse, paginatedResponse, successResponse } from "../../lib/response"
+import type { AppRouteHandler } from "@/lib/create-router"
+import { errorResponse, paginatedResponse, successResponse } from "@/lib/response"
 import type { CreateRoute, GetOneRoute, ListRoute, RemoveRoute, UpdateRoute } from "./items.routes"
 import { itemsService } from "./items.service"
 

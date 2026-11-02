@@ -1,7 +1,7 @@
-import { createApp } from "./app"
-import { env } from "./config/env"
-import { closeDb, verifyDbConnection } from "./db"
-import { logger } from "./lib/logger"
+import { createApp } from "@/app"
+import { env } from "@/config/env"
+import { closeDb, verifyDbConnection } from "@/db"
+import { logger } from "@/lib/logger"
 
 const getErrorReason = (err: unknown): string => {
   if (!(err instanceof Error)) return String(err)

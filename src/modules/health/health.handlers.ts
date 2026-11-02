@@ -1,6 +1,6 @@
-import { verifyDbConnection } from "../../db"
-import type { AppRouteHandler } from "../../lib/create-router"
-import { errorResponse, successResponse } from "../../lib/response"
+import { verifyDbConnection } from "@/db"
+import type { AppRouteHandler } from "@/lib/create-router"
+import { errorResponse, successResponse } from "@/lib/response"
 import type { CheckRoute } from "./health.routes"
 
 export const check: AppRouteHandler<CheckRoute> = async (c) => {
@@ -30,4 +30,3 @@ export const check: AppRouteHandler<CheckRoute> = async (c) => {
     )
   }
 }
-

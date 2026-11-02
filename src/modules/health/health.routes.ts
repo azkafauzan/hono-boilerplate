@@ -1,6 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { jsonContent } from "../../lib/openapi"
-import { ApiErrorSchema, ApiResponseSchema } from "../../lib/schemas"
+import { jsonContent } from "@/lib/openapi"
+import { ApiErrorSchema, ApiResponseSchema } from "@/lib/schemas"
 
 const HealthResponseSchema = z
   .object({
@@ -22,4 +22,3 @@ export const check = createRoute({
 })
 
 export type CheckRoute = typeof check
-

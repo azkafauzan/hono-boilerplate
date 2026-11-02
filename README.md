@@ -63,7 +63,7 @@ hono-boilerplate/
 2. Daftarkan tabel baru di `src/db/schema.ts`:
 
    ```ts
-   export * from "../modules/<nama>/<nama>.table"
+   export * from "@/modules/<nama>/<nama>.table"
    ```
 3. Mount router di `src/app.ts`:
 

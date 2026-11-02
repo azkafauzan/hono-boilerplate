@@ -1,14 +1,14 @@
 import { cors } from "hono/cors"
 import { requestId } from "hono/request-id"
 import { secureHeaders } from "hono/secure-headers"
+import { env } from "@/config/env"
+import { createRouter } from "@/lib/create-router"
+import { configureOpenAPI } from "@/lib/openapi"
+import { errorHandler, notFoundHandler } from "@/middlewares/error.middleware"
+import { requestLogger } from "@/middlewares/logger.middleware"
+import { healthRouter } from "@/modules/health"
+import { itemsRouter } from "@/modules/items"
 import pkg from "../package.json"
-import { env } from "./config/env"
-import { createRouter } from "./lib/create-router"
-import { configureOpenAPI } from "./lib/openapi"
-import { errorHandler, notFoundHandler } from "./middlewares/error.middleware"
-import { requestLogger } from "./middlewares/logger.middleware"
-import { healthRouter } from "./modules/health"
-import { itemsRouter } from "./modules/items"
 
 /**
  * Composes the Hono application: global middlewares, feature modules,
@@ -46,4 +46,3 @@ export const createApp = () => {
 
   return app
 }
-

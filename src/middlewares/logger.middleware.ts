@@ -1,5 +1,5 @@
 import { structuredLogger } from "@hono/structured-logger"
-import { logger } from "../lib/logger"
+import { logger } from "@/lib/logger"
 
 export const requestLogger = () =>
   structuredLogger({
@@ -36,4 +36,3 @@ export const requestLogger = () =>
       )
     },
   })
-
