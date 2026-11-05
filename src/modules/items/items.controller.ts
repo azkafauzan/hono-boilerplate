@@ -44,4 +44,3 @@ export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
   }
   return c.json(successResponse(item, "Item deleted successfully"), 200)
 }
-

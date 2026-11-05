@@ -47,12 +47,13 @@ hono-boilerplate/
 │           └── <name>.routes.ts      # createRoute definitions & exported module router
 └── test/
     ├── app.test.ts               # Core application, health, OpenAPI & middleware tests
-    └── <name>.e2e.ts             # End-to-end route tests per feature module
+    └── <name>.e2e.test.ts        # End-to-end route tests per feature module
 ```
 
 ## Rules & Conventions
 
 - **Always use the `ponytail` skill:** Operate in lazy senior developer mode by default. Implement the smallest complete change that solves the task, never add unrequested abstractions, wrappers, options, or speculative boilerplate, reuse existing codebase helpers before writing new ones, and end every reply with 1–2 lines stating what was skipped/unchecked and any risks.
+- **Always use the `hono` skill for Hono packages:** Activate and follow the `hono` skill whenever working with `hono` or `@hono/*` packages (routing, middleware, context, validation, OpenAPI, or route inspection/testing).
 - **Path alias:** Always use the `@/` alias (mapped to `./src/*`) when importing across directories in `src/` and `test/`. Use relative imports (`./*`) only for sibling files inside the same folder.
 - **Database tables:** Define all Drizzle `pgTable` schemas and inferred row types (`$inferSelect`, `$inferInsert`) centrally in `src/db/schema.ts`. Spread `timestamps` from `@/db/columns` for standard `created_at` and `updated_at` columns.
 - **Module schemas (`<name>.schema.ts`):** Import the `z` instance from `@hono/zod-openapi` and derive select/insert schemas from `src/db/schema.ts` tables using `createSchemaFactory({ zodInstance: z })` from `drizzle-zod`. Attach `.openapi()` metadata to schemas.
@@ -60,6 +61,10 @@ hono-boilerplate/
 - **Module controllers (`<name>.controller.ts`):** Type every handler with `AppRouteHandler<RouteType>` from `@/lib/create-router`. Use `c.req.valid(...)` for validated inputs and return responses via `successResponse`, `paginatedResponse`, or `errorResponse` from `@/lib/response`.
 - **Module routes (`<name>.routes.ts`):** Define OpenAPI routes with `createRoute` from `@hono/zod-openapi` using `jsonContent`, `jsonContentRequired`, and `errorResponses` from `@/lib/openapi`. Export both route types (`typeof route`) and the wired router (`createRouter().openapi(route, controller.handler)`), then mount it in `src/app.ts`.
 - **Code style & types:** Enforce strict TypeScript (`noEmit`, `verbatimModuleSyntax` — always use `import type` for type-only imports). Format and lint with Biome (`2` spaces, `100` line width, double quotes, `asNeeded` semicolons). Never use `any`.
+
+## Hono CLI
+
+Run `bunx hono --help` first, and use the CLI instead of a dev server.
 
 ## Commands
 
@@ -78,5 +83,5 @@ hono-boilerplate/
 
 - Instantiate the app via `createApp()` from `@/app` and test HTTP routes using `app.request(...)` without starting a network server.
 - Keep core app, middleware, OpenAPI spec, and health checks in `test/app.test.ts`.
-- Place feature module route and validation tests in `test/<name>.e2e.ts` (run with `bun test ./test/<name>.e2e.ts`, as bare `bun test` only auto-discovers `*.test.ts` and `*.spec.ts`).
+- Place feature module route and validation tests in `test/<name>.e2e.test.ts`.
 - Run `bun run typecheck`, `bun run lint`, and `bun test` after making changes.

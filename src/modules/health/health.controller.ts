@@ -30,4 +30,3 @@ export const check: AppRouteHandler<CheckRoute> = async (c) => {
     )
   }
 }
-

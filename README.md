@@ -53,7 +53,7 @@ hono-boilerplate/
 │           └── items.routes.ts     # Definisi route OpenAPI & router wiring
 └── test/
     ├── app.test.ts               # Core app & health tests
-    └── items.e2e.ts              # Module E2E tests
+    └── items.e2e.test.ts         # Module E2E tests
 ```
 
 ### Menambah Module Baru
@@ -65,7 +65,7 @@ hono-boilerplate/
    ```ts
    app.route("/<name>", <name>Router)
    ```
-4. Tambahkan pengujian di `test/<name>.e2e.ts`.
+4. Tambahkan pengujian di `test/<name>.e2e.test.ts`.
 5. Jalankan `bun run db:generate` (atau `db:push` saat development).
 
 ---
