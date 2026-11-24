@@ -1,32 +1,27 @@
-import { verifyDbConnection } from "@/db"
-import type { AppRouteHandler } from "@/lib/create-router"
-import { errorResponse, successResponse } from "@/lib/response"
-import type { CheckRoute } from "./health.routes"
+import { createRoute } from "@hono/zod-openapi"
+import { createRouter } from "@/common/router"
+import { HealthResponseSchema } from "./health.dto"
+import type { HealthService } from "./health.service"
 
-export const check: AppRouteHandler<CheckRoute> = async (c) => {
-  const timestamp = new Date().toISOString()
-
-  try {
-    await verifyDbConnection()
-    return c.json(
-      successResponse(
-        {
-          status: "ok" as const,
-          timestamp,
-          database: "connected" as const,
+const checkHealthRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Health"],
+  summary: "Service liveness check",
+  responses: {
+    200: {
+      description: "Service is healthy",
+      content: {
+        "application/json": {
+          schema: HealthResponseSchema,
         },
-        "Service is healthy",
-      ),
-      200,
-    )
-  } catch (_err) {
-    return c.json(
-      errorResponse("Service is degraded: database unreachable", {
-        status: "degraded",
-        timestamp,
-        database: "disconnected",
-      }),
-      503,
-    )
-  }
+      },
+    },
+  },
+})
+
+export function createHealthController(healthService: HealthService) {
+  return createRouter().openapi(checkHealthRoute, (c) => {
+    return c.json(healthService.check(), 200)
+  })
 }

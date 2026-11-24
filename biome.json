@@ -1,9 +1,16 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!!.agents",
+      "!!drizzle",
+      "!!dist",
+      "!!coverage",
+      "!skills-lock.json",
+      "!bun.lock"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -12,7 +19,10 @@
     "lineWidth": 100
   },
   "linter": {
-    "enabled": true
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
   },
   "javascript": {
     "formatter": {

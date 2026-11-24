@@ -1,19 +1,10 @@
-import { sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/node-postgres"
-import { env } from "@/config/env"
-import { logger } from "@/lib/logger"
+import { Pool } from "pg"
 import * as schema from "./schema"
 
-export const db = drizzle(env.DATABASE_URL, { schema })
-
-db.$client.on("error", (err) => {
-  logger.error({ err }, "Unexpected error on idle database client")
-})
-
-export const verifyDbConnection = async () => {
-  await db.execute(sql`SELECT 1`)
+export function createDb(connectionString: string) {
+  const pool = new Pool({ connectionString })
+  return drizzle({ client: pool, schema })
 }
 
-export const closeDb = async () => {
-  await db.$client.end()
-}
+export type Database = ReturnType<typeof createDb>

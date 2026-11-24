@@ -1,141 +1,132 @@
 # Hono Boilerplate
 
-Boilerplate backend modern, ringan, dan cepat berbasis **Hono**, **Bun**, dan **Drizzle ORM (PostgreSQL)** dengan arsitektur **feature-based modules**, dokumentasi otomatis **Swagger UI / OpenAPI**, schema Zod yang diturunkan langsung dari tabel Drizzle (**drizzle-zod**), linter/formatter **Biome**, dan structured logging dengan **Pino**.
-
----
+Boilerplate REST API dengan **Hono** dan **Bun** yang mengadopsi arsitektur modular ala **NestJS** (Controller, Service, Repository, Module, Guard, Interceptor, Exception Filter, dan DTO validation)—namun tetap ringan, type-safe penuh, dan tanpa decorator maupun `reflect-metadata`.
 
 ## Tech Stack
 
-- **Runtime:** [Bun](https://bun.sh/)
-- **Framework:** [Hono v4](https://hono.dev/)
-- **Database & ORM:** [Drizzle ORM](https://orm.drizzle.team/) + PostgreSQL
-- **Validation & OpenAPI:** [Zod](https://zod.dev/) + [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) + [drizzle-zod](https://orm.drizzle.team/docs/zod)
-- **API Documentation:** [@hono/swagger-ui](https://github.com/honojs/middleware/tree/main/packages/swagger-ui)
-- **Logging & Tracing:** [Pino](https://getpino.io/) + [@hono/structured-logger](https://github.com/honojs/middleware/tree/main/packages/structured-logger) + `hono/request-id`
-- **Linter & Formatter:** [Biome](https://biomejs.dev/)
-- **Testing:** Bun built-in test runner (`bun:test`)
+| Kebutuhan                | Library / Tool                                       |
+| ------------------------ | ---------------------------------------------------- |
+| Runtime & Test Runner    | [Bun](https://bun.sh/) (`bun run`, `bun test`)       |
+| HTTP Framework & OpenAPI | `hono`, `@hono/zod-openapi`, `@hono/swagger-ui`      |
+| Validasi & Schema        | `zod` (v4), `drizzle-zod`                            |
+| Database & ORM           | PostgreSQL (`pg`), `drizzle-orm`, `drizzle-kit`      |
+| Logging                  | `pino`, `@hono/structured-logger`, `hono/request-id` |
+| Linter & Formatter       | `@biomejs/biome`                                     |
 
----
-
-## Struktur Direktori
+## Struktur Folder
 
 ```text
-hono-boilerplate/
-├── .env.example
-├── biome.json
-├── drizzle.config.ts
-├── package.json
-├── tsconfig.json
 ├── src/
-│   ├── index.ts                  # Bootstrap: cek DB → Bun.serve → graceful shutdown
-│   ├── app.ts                    # createApp(): middleware, mount modules, docs, error handler (tanpa side effect)
+│   ├── index.ts                  # Entrypoint aplikasi (menjalankan server via Bun)
+│   ├── app.module.ts             # Root module: middleware global, filter error, Swagger, dan mount fitur
 │   ├── config/
-│   │   └── env.ts                # Type-safe environment variables via Zod
+│   │   ├── env.ts                # Validasi variabel environment saat startup dengan Zod
+│   │   └── logger.ts             # Konfigurasi logger Pino
 │   ├── db/
-│   │   ├── index.ts              # Drizzle client, pool error logging, verify/close helpers
-│   │   ├── columns.ts            # Kolom reusable (timestamps)
-│   │   └── schema.ts             # Definisi seluruh tabel Drizzle (dipakai drizzle-kit)
-│   ├── lib/
-│   │   ├── create-router.ts      # OpenAPIHono factory + AppEnv & AppRouteHandler types
-│   │   ├── logger.ts             # Root Pino logger
-│   │   ├── openapi.ts            # jsonContent helpers & konfigurasi /doc + /swagger
-│   │   ├── response.ts           # Standard & paginated API response helpers
-│   │   └── schemas.ts            # Reusable schemas (Pagination, ID param, ApiResponse, ApiError)
-│   ├── middlewares/
-│   │   ├── error.middleware.ts   # Global error & 404 handlers
-│   │   └── logger.middleware.ts  # Structured request logger
+│   │   ├── index.ts              # Koneksi PostgreSQL + Drizzle (lazy pool)
+│   │   ├── schema.ts             # Kumpulan export semua tabel Drizzle dari tiap modul
+│   │   └── zod.ts                # Helper drizzle-zod agar terhubung ke OpenAPI
+│   ├── common/
+│   │   ├── router.ts             # Pembuat router OpenAPIHono + format error validasi global
+│   │   ├── types.ts              # Tipe shared Context (requestId, logger, authToken)
+│   │   ├── dto/                  # Schema OpenAPI bersama (misal format error standar)
+│   │   ├── exceptions/           # Class error HTTP ala NestJS (NotFoundException, ConflictException, dll.)
+│   │   ├── filters/              # Global error & 404 handler agar format JSON selalu konsisten
+│   │   ├── guards/               # Middleware autentikasi/otorisasi (contoh: BearerAuthGuard)
+│   │   └── interceptors/         # Logging request/response otomatis per requestId
 │   └── modules/
-│       ├── health/               # Health check (200 OK / 503 Degraded)
-│       └── items/                # Contoh CRUD module
-│           ├── items.controller.ts # HTTP handlers (AppRouteHandler)
-│           ├── items.schema.ts     # Zod schema (diturunkan dari tabel via drizzle-zod)
-│           ├── items.service.ts    # Akses data / query database
-│           └── items.routes.ts     # Definisi route OpenAPI & router wiring
+│       ├── health/               # Contoh modul sederhana tanpa database (GET /health)
+│       └── items/                # Contoh modul CRUD lengkap (id, name, createdAt, updatedAt)
 └── test/
-    ├── app.test.ts               # Core app & health tests
-    └── items.e2e.test.ts         # Module E2E tests
+    ├── helper/                   # Helper test aplikasi & database (`createTestDb`, `cleanupTestDb`)
+    ├── integration/              # Test per modul, service, config, dan guard (*.test.ts)
+    └── e2e/                      # Test alur HTTP lengkap melalui createApp() (*.e2e.test.ts)
 ```
 
-### Menambah Module Baru
+## Cara Menjalankan
 
-1. Tambahkan definisi tabel baru di `src/db/schema.ts`.
-2. Salin folder `src/modules/items` menjadi `src/modules/<name>` (`<name>.controller.ts`, `<name>.schema.ts`, `<name>.service.ts`, `<name>.routes.ts`) lalu sesuaikan isinya.
-3. Mount router di `src/app.ts`:
+1. **Install dependency:**
 
-   ```ts
-   app.route("/<name>", <name>Router)
+   ```sh
+   bun install
    ```
-4. Tambahkan pengujian di `test/<name>.e2e.test.ts`.
-5. Jalankan `bun run db:generate` (atau `db:push` saat development).
 
----
+2. **Siapkan environment variable:**
 
-## Panduan Memulai (Getting Started)
+   Salin `.env.example` menjadi `.env`, lalu sesuaikan nilai `DATABASE_URL` jika ingin terhubung ke PostgreSQL:
 
-### 1. Instalasi Dependensi
+   ```sh
+   cp .env.example .env
+   ```
 
-```sh
-bun install
-```
+3. **Sinkronkan schema database (opsional jika memakai fitur database):**
 
-### 2. Atur Environment Variables
+   ```sh
+   bun run db:push
+   ```
 
-Salin file `.env.example` ke `.env`:
-```sh
-cp .env.example .env
-```
-Sesuaikan `DATABASE_URL` dengan konfigurasi PostgreSQL Anda.
+4. **Jalankan server development (hot reload):**
 
-### 3. Database Migration
+   ```sh
+   bun run dev
+   ```
 
-```sh
-# Generate migrasi dari schema Drizzle
-bun run db:generate
+5. **Buka dokumentasi API:**
+   - Swagger UI: `http://localhost:3000/docs`
+   - OpenAPI 3.1 JSON: `http://localhost:3000/doc`
+   - Health check: `http://localhost:3000/health`
 
-# Terapkan migrasi ke database
-bun run db:migrate
+## Daftar Perintah (Scripts)
 
-# Atau langsung sinkronkan schema (development)
-bun run db:push
+| Perintah                   | Kegunaan                                                      |
+| -------------------------- | ------------------------------------------------------------- |
+| `bun run dev`              | Menjalankan server development dengan hot reload              |
+| `bun run start`            | Menjalankan server tanpa hot reload                           |
+| `bun run typecheck`        | Mengecek tipe TypeScript secara ketat (`tsc --noEmit`)        |
+| `bun run lint`             | Mengecek kerapian kode & aturan lint dengan Biome             |
+| `bun run lint:fix`         | Merapikan format & perbaikan lint otomatis dengan Biome       |
+| `bun test`                 | Menjalankan seluruh test (`integration` dan `e2e`)            |
+| `bun run test:integration` | Menjalankan test di folder `test/integration` saja            |
+| `bun run test:e2e`         | Menjalankan test di folder `test/e2e` saja                    |
+| `bun run db:generate`      | Membuat file migrasi SQL dari perubahan schema Drizzle        |
+| `bun run db:migrate`       | Menjalankan migrasi database                                  |
+| `bun run db:push`          | Mendorong perubahan schema langsung ke database (development) |
+| `bun run db:studio`        | Membuka Drizzle Studio untuk melihat isi database             |
 
-# Buka Drizzle Studio di browser
-bun run db:studio
-```
+## Alur Request & Arsitektur Modul
 
-### 4. Jalankan Server
+Setiap request HTTP melewati urutan yang terstruktur:
 
-```sh
-# Development (dengan hot-reload)
-bun run dev
-```
+1. **Middleware & Interceptor**: `secureHeaders` → `cors` → `requestId` → `loggingInterceptor` (mencatat durasi dan status request dengan `pino`).
+2. **Guard** _(opsional per route)_: Memeriksa hak akses/token sebelum handler dijalankan.
+3. **Validation Pipe**: `@hono/zod-openapi` memvalidasi `param`, `query`, `header`, dan `json` body otomatis. Jika tidak valid, `defaultHook` langsung mengembalikan error `400` dengan format JSON seragam.
+4. **Controller (`*.controller.ts`)**: Hanya membaca input yang sudah tervalidasi, memanggil Service, dan mengembalikan response JSON.
+5. **Service (`*.service.ts`)**: Berisi logika bisnis murni (tanpa menyentuh `Context` Hono) dan melempar semantic exception (`NotFoundException`, `ConflictException`, dll.) jika ada kesalahan bisnis.
+6. **Repository (`*.repository.ts`)**: Mengelola query Drizzle di balik interface. Saat `bun test` dijalankan, test langsung terhubung ke PostgreSQL dan data uji otomatis dibersihkan kembali setelah tiap test lewat `cleanupTestDb` di `test/helper/db.ts`.
+7. **Exception Filter**: `app.onError` dan `app.notFound` menangkap semua error (HTTPException, ZodError, maupun error kode PostgreSQL seperti `23505` duplicate key) menjadi format JSON konsisten:
 
-Server akan aktif di `http://localhost:3000`.
+   ```json
+   {
+     "statusCode": 400,
+     "error": "Bad Request",
+     "message": "Validation failed",
+     "requestId": "...",
+     "details": [{ "path": "name", "message": "Too small: expected string to have >=1 characters" }]
+   }
+   ```
 
----
+## Cara Menambah Modul Fitur Baru
 
-## API Documentation (Swagger)
+Misalkan ingin membuat modul `posts`:
 
-Setelah server berjalan, buka browser dan akses:
-- **Interactive Swagger UI:** `http://localhost:3000/swagger`
-- **OpenAPI JSON Spec:** `http://localhost:3000/doc`
-
----
-
-## Testing & Code Quality
-
-```sh
-# Menjalankan unit & E2E tests (log otomatis silent saat NODE_ENV=test)
-bun test
-
-# Cek lint & format tanpa mengubah file (cocok untuk CI)
-bun run lint
-
-# Lint + auto-fix
-bun run check
-
-# Type check
-bun run typecheck
-
-# Menjalankan auto-formatting kode
-bun run format
-```
+1. Buat folder `src/modules/posts/` berisi:
+   - `posts.entity.ts` (jika butuh tabel PostgreSQL, lalu re-export di `src/db/schema.ts`)
+   - `posts.dto.ts` (schema request/response dengan `z` dari `@hono/zod-openapi` dan `@/db/zod`)
+   - `posts.repository.ts` (interface + implementasi Drizzle)
+   - `posts.service.ts` (logika bisnis dengan dependency injection lewat constructor)
+   - `posts.controller.ts` (definisi route `createRoute` + `createRouter()` dari `@/common/router`)
+   - `posts.module.ts` (merakit repository, service, dan controller)
+2. Gunakan import alias `@/` (mengarah ke `src/`, misalnya `@/common/router`) untuk import lintas folder di `src/` maupun `test/`.
+3. Daftarkan modul di `src/app.module.ts` dengan `.route("/api/v1/posts", postsModule)`.
+4. Tambahkan test modulnya di `test/integration/posts.test.ts` dan test alur HTTP lengkapnya di `test/e2e/posts.e2e.test.ts`.
+5. Jalankan `bun run typecheck`, `bun run lint`, dan `bun test` untuk memastikan semuanya aman.

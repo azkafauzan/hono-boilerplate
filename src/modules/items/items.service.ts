@@ -1,38 +1,39 @@
-import { count, desc, eq } from "drizzle-orm"
-import { db } from "@/db"
-import { items } from "@/db/schema"
-import type { PaginationQuery } from "@/lib/schemas"
-import type { CreateItemInput, UpdateItemInput } from "./items.schema"
+import { NotFoundException } from "@/common/exceptions/http.exception"
+import type { CreateItemDto, UpdateItemDto } from "./items.dto"
+import type { ItemEntity } from "./items.entity"
+import type { ItemsRepository } from "./items.repository"
 
-export const itemsService = {
-  async findAll({ page, limit }: PaginationQuery) {
-    const offset = (page - 1) * limit
+export class ItemsService {
+  constructor(private readonly itemsRepository: ItemsRepository) {}
 
-    const [data, [{ total }]] = await Promise.all([
-      db.select().from(items).orderBy(desc(items.createdAt)).limit(limit).offset(offset),
-      db.select({ total: count() }).from(items),
-    ])
+  async findAll(): Promise<ItemEntity[]> {
+    return this.itemsRepository.findAll()
+  }
 
-    return { data, total }
-  },
-
-  async findById(id: number) {
-    const [item] = await db.select().from(items).where(eq(items.id, id)).limit(1)
-    return item ?? null
-  },
-
-  async create(data: CreateItemInput) {
-    const [item] = await db.insert(items).values(data).returning()
+  async findById(id: string): Promise<ItemEntity> {
+    const item = await this.itemsRepository.findById(id)
+    if (!item) {
+      throw new NotFoundException(`Item ${id} not found`)
+    }
     return item
-  },
+  }
 
-  async update(id: number, data: UpdateItemInput) {
-    const [item] = await db.update(items).set(data).where(eq(items.id, id)).returning()
-    return item ?? null
-  },
+  async create(dto: CreateItemDto): Promise<ItemEntity> {
+    return this.itemsRepository.create(dto)
+  }
 
-  async remove(id: number) {
-    const [item] = await db.delete(items).where(eq(items.id, id)).returning()
-    return item ?? null
-  },
+  async update(id: string, dto: UpdateItemDto): Promise<ItemEntity> {
+    const updated = await this.itemsRepository.update(id, dto)
+    if (!updated) {
+      throw new NotFoundException(`Item ${id} not found`)
+    }
+    return updated
+  }
+
+  async remove(id: string): Promise<void> {
+    const deleted = await this.itemsRepository.delete(id)
+    if (!deleted) {
+      throw new NotFoundException(`Item ${id} not found`)
+    }
+  }
 }
