@@ -26,7 +26,7 @@ export function createApp(options: AppModuleOptions = {}) {
   const app = createRouter()
 
   app.use("*", secureHeaders())
-  app.use("*", cors())
+  app.use("*", cors({ origin: env.CORS_ORIGIN }))
   app.use("*", requestId())
   app.use("*", createLoggingInterceptor(logger))
 

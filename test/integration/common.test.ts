@@ -34,8 +34,51 @@ describe("Common pipeline & config", () => {
     const prod = parseEnv({
       NODE_ENV: "production",
       DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+      CORS_ORIGIN: "https://app.example.com",
     })
     expect(prod.PORT).toBe(3000)
     expect(prod.DATABASE_URL).toBe("postgres://user:pass@db.example.com:5432/prod")
+    expect(prod.CORS_ORIGIN).toBe("https://app.example.com")
+  })
+
+  it("validates and parses CORS_ORIGIN across environments", () => {
+    expect(parseEnv({ NODE_ENV: "development" }).CORS_ORIGIN).toBe("*")
+    expect(parseEnv({ NODE_ENV: "test" }).CORS_ORIGIN).toBe("*")
+
+    expect(() =>
+      parseEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+      }),
+    ).toThrow("CORS_ORIGIN is required in production")
+
+    expect(
+      parseEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+        CORS_ORIGIN: "*",
+      }).CORS_ORIGIN,
+    ).toBe("*")
+
+    expect(parseEnv({ CORS_ORIGIN: "https://app.example.com/" }).CORS_ORIGIN).toBe(
+      "https://app.example.com",
+    )
+
+    expect(
+      parseEnv({
+        CORS_ORIGIN: " http://localhost:5173 , https://app.example.com, http://localhost:5173 ",
+      }).CORS_ORIGIN,
+    ).toEqual(["http://localhost:5173", "https://app.example.com"])
+
+    for (const invalid of [
+      "",
+      "   ",
+      "*,https://app.example.com",
+      "app.example.com",
+      "https://app.example.com/api",
+      "https://user:pass@app.example.com",
+    ]) {
+      expect(() => parseEnv({ CORS_ORIGIN: invalid })).toThrow("CORS_ORIGIN")
+    }
   })
 })

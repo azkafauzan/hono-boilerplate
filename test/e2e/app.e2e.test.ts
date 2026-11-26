@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { parseEnv } from "@/config/env"
 import { createTestApp } from "../helper/create-test-app"
 
 describe("App E2E", () => {
@@ -44,5 +45,75 @@ describe("App E2E", () => {
     expect(body.statusCode).toBe(404)
     expect(body.error).toBe("Not Found")
     expect(body.requestId).toBeTruthy()
+  })
+
+  it("allows any origin when CORS_ORIGIN is *", async () => {
+    const app = createTestApp({
+      env: parseEnv({ NODE_ENV: "test", CORS_ORIGIN: "*" }),
+    })
+
+    const getRes = await app.request("/health", {
+      headers: { Origin: "https://any.example.com" },
+    })
+    expect(getRes.status).toBe(200)
+    expect(getRes.headers.get("access-control-allow-origin")).toBe("*")
+
+    const preflightRes = await app.request("/api/v1/items", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://any.example.com",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Authorization, Content-Type",
+      },
+    })
+    expect(preflightRes.status).toBe(204)
+    expect(preflightRes.headers.get("access-control-allow-origin")).toBe("*")
+    expect(preflightRes.headers.get("access-control-allow-methods")).toContain("POST")
+    expect(preflightRes.headers.get("access-control-allow-headers")).toBe(
+      "Authorization,Content-Type",
+    )
+  })
+
+  it("enforces configured CORS_ORIGIN allowlist and preserves headers on errors", async () => {
+    const app = createTestApp({
+      env: parseEnv({
+        NODE_ENV: "test",
+        CORS_ORIGIN: "http://localhost:5173, https://app.example.com",
+      }),
+    })
+
+    const allowedRes = await app.request("/health", {
+      headers: { Origin: "https://app.example.com" },
+    })
+    expect(allowedRes.status).toBe(200)
+    expect(allowedRes.headers.get("access-control-allow-origin")).toBe("https://app.example.com")
+    expect(allowedRes.headers.get("vary")).toContain("Origin")
+
+    const preflightRes = await app.request("/api/v1/items", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://localhost:5173",
+        "Access-Control-Request-Method": "PATCH",
+        "Access-Control-Request-Headers": "Authorization",
+      },
+    })
+    expect(preflightRes.status).toBe(204)
+    expect(preflightRes.headers.get("access-control-allow-origin")).toBe("http://localhost:5173")
+    expect(preflightRes.headers.get("access-control-allow-headers")).toBe("Authorization")
+    expect(preflightRes.headers.get("vary")).toContain("Origin")
+
+    const disallowedRes = await app.request("/health", {
+      headers: { Origin: "https://evil.example.com" },
+    })
+    expect(disallowedRes.status).toBe(200)
+    expect(disallowedRes.headers.get("access-control-allow-origin")).toBeNull()
+    expect(disallowedRes.headers.get("vary")).toContain("Origin")
+
+    const notFoundRes = await app.request("/does-not-exist", {
+      headers: { Origin: "https://app.example.com" },
+    })
+    expect(notFoundRes.status).toBe(404)
+    expect(notFoundRes.headers.get("access-control-allow-origin")).toBe("https://app.example.com")
+    expect(notFoundRes.headers.get("vary")).toContain("Origin")
   })
 })

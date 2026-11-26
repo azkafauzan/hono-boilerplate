@@ -4,7 +4,7 @@ import { createTestDb } from "./db"
 
 export function createTestApp(options: AppModuleOptions = {}) {
   return createApp({
-    env: parseEnv({ ...process.env, NODE_ENV: "test" }),
+    env: options.env ?? parseEnv({ ...process.env, NODE_ENV: "test" }),
     db: options.db ?? createTestDb(),
     ...options,
   })

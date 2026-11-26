@@ -53,7 +53,7 @@ Boilerplate REST API dengan **Hono** dan **Bun** yang mengadopsi arsitektur modu
 
 2. **Siapkan environment variable:**
 
-   Salin `.env.example` menjadi `.env`, lalu sesuaikan nilai `DATABASE_URL` jika ingin terhubung ke PostgreSQL:
+   Salin `.env.example` menjadi `.env`, lalu sesuaikan nilai `DATABASE_URL` (PostgreSQL) dan `CORS_ORIGIN` (`*`, satu origin, atau beberapa origin dipisah koma; wajib diisi saat `NODE_ENV=production`):
 
    ```sh
    cp .env.example .env
