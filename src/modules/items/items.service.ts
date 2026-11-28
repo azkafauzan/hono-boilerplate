@@ -1,4 +1,4 @@
-import { NotFoundException } from "@/common/exceptions/http.exception"
+import { ForbiddenException, NotFoundException } from "@/common/exceptions/http.exception"
 import type { CreateItemDto, UpdateItemDto } from "./items.dto"
 import type { ItemEntity } from "./items.entity"
 import type { ItemsRepository } from "./items.repository"
@@ -18,20 +18,28 @@ export class ItemsService {
     return item
   }
 
-  async create(dto: CreateItemDto): Promise<ItemEntity> {
-    return this.itemsRepository.create(dto)
+  async create(userId: number, dto: CreateItemDto): Promise<ItemEntity> {
+    return this.itemsRepository.create({ ...dto, userId })
   }
 
-  async update(id: string, dto: UpdateItemDto): Promise<ItemEntity> {
-    const updated = await this.itemsRepository.update(id, dto)
+  async update(id: string, userId: number, dto: UpdateItemDto): Promise<ItemEntity> {
+    const existing = await this.findById(id)
+    if (existing.userId !== userId) {
+      throw new ForbiddenException("You do not have permission to update this item")
+    }
+    const updated = await this.itemsRepository.update(id, userId, dto)
     if (!updated) {
       throw new NotFoundException(`Item ${id} not found`)
     }
     return updated
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.itemsRepository.delete(id)
+  async remove(id: string, userId: number): Promise<void> {
+    const existing = await this.findById(id)
+    if (existing.userId !== userId) {
+      throw new ForbiddenException("You do not have permission to delete this item")
+    }
+    const deleted = await this.itemsRepository.delete(id, userId)
     if (!deleted) {
       throw new NotFoundException(`Item ${id} not found`)
     }

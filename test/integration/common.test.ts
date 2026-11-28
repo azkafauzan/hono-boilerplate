@@ -4,6 +4,14 @@ import { createBearerAuthGuard } from "@/common/guards/bearer-auth.guard"
 import { createRouter } from "@/common/router"
 import { parseEnv } from "@/config/env"
 
+const VALID_PROD_ENV = {
+  NODE_ENV: "production",
+  DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+  CORS_ORIGIN: "https://app.example.com",
+  BETTER_AUTH_SECRET: "super-secret-production-key-with-at-least-32-chars",
+  BETTER_AUTH_URL: "https://api.example.com",
+}
+
 describe("Common pipeline & config", () => {
   it("enforces bearer auth via createBearerAuthGuard", async () => {
     const router = createRouter()
@@ -29,16 +37,38 @@ describe("Common pipeline & config", () => {
     expect(await okRes.json()).toEqual({ ok: true, token: "secret-token" })
   })
 
-  it("requires DATABASE_URL in production env", () => {
+  it("requires production env variables and validates auth config", () => {
     expect(() => parseEnv({ NODE_ENV: "production" })).toThrow("DATABASE_URL is required")
-    const prod = parseEnv({
-      NODE_ENV: "production",
-      DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
-      CORS_ORIGIN: "https://app.example.com",
-    })
+    expect(() =>
+      parseEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: VALID_PROD_ENV.DATABASE_URL,
+        CORS_ORIGIN: VALID_PROD_ENV.CORS_ORIGIN,
+      }),
+    ).toThrow("BETTER_AUTH_SECRET is required")
+    expect(() =>
+      parseEnv({
+        ...VALID_PROD_ENV,
+        BETTER_AUTH_URL: undefined,
+      }),
+    ).toThrow("BETTER_AUTH_URL is required")
+    expect(() => parseEnv({ BETTER_AUTH_SECRET: "too-short" })).toThrow("at least 32 characters")
+    expect(() => parseEnv({ BETTER_AUTH_URL: "not-a-url" })).toThrow("valid http(s) URL")
+
+    const prod = parseEnv(VALID_PROD_ENV)
     expect(prod.PORT).toBe(3000)
-    expect(prod.DATABASE_URL).toBe("postgres://user:pass@db.example.com:5432/prod")
-    expect(prod.CORS_ORIGIN).toBe("https://app.example.com")
+    expect(prod.DATABASE_URL).toBe(VALID_PROD_ENV.DATABASE_URL)
+    expect(prod.CORS_ORIGIN).toBe(VALID_PROD_ENV.CORS_ORIGIN)
+    expect(prod.BETTER_AUTH_SECRET).toBe(VALID_PROD_ENV.BETTER_AUTH_SECRET)
+    expect(prod.BETTER_AUTH_URL).toBe(VALID_PROD_ENV.BETTER_AUTH_URL)
+
+    const devEmptySecret = parseEnv({
+      NODE_ENV: "development",
+      BETTER_AUTH_SECRET: "",
+      BETTER_AUTH_URL: "http://localhost:3000/",
+    })
+    expect(devEmptySecret.BETTER_AUTH_SECRET.length).toBeGreaterThanOrEqual(32)
+    expect(devEmptySecret.BETTER_AUTH_URL).toBe("http://localhost:3000")
   })
 
   it("validates and parses CORS_ORIGIN across environments", () => {
@@ -47,15 +77,14 @@ describe("Common pipeline & config", () => {
 
     expect(() =>
       parseEnv({
-        NODE_ENV: "production",
-        DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+        ...VALID_PROD_ENV,
+        CORS_ORIGIN: undefined,
       }),
     ).toThrow("CORS_ORIGIN is required in production")
 
     expect(
       parseEnv({
-        NODE_ENV: "production",
-        DATABASE_URL: "postgres://user:pass@db.example.com:5432/prod",
+        ...VALID_PROD_ENV,
         CORS_ORIGIN: "*",
       }).CORS_ORIGIN,
     ).toBe("*")

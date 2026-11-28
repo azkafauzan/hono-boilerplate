@@ -20,10 +20,19 @@ describe("App E2E", () => {
     const doc = (await docRes.json()) as {
       openapi: string
       paths: Record<string, unknown>
+      components?: { securitySchemes?: Record<string, unknown> }
     }
     expect(doc.openapi).toBe("3.1.0")
     expect(doc.paths["/health"]).toBeDefined()
+    expect(doc.paths["/api/v1/auth/signup"]).toBeDefined()
+    expect(doc.paths["/api/v1/auth/signin"]).toBeDefined()
+    expect(doc.paths["/api/v1/auth/signout"]).toBeDefined()
+    expect(doc.paths["/api/v1/auth/me"]).toBeDefined()
+    expect(doc.paths["/api/v1/auth/reset-password"]).toBeDefined()
+    expect(doc.paths["/api/v1/users/me"]).toBeDefined()
+    expect(doc.paths["/api/v1/users/{id}"]).toBeDefined()
     expect(doc.paths["/api/v1/items"]).toBeDefined()
+    expect(doc.components?.securitySchemes?.CookieAuth).toBeDefined()
 
     const docsRes = await app.request("/docs")
     expect(docsRes.status).toBe(200)
@@ -57,6 +66,7 @@ describe("App E2E", () => {
     })
     expect(getRes.status).toBe(200)
     expect(getRes.headers.get("access-control-allow-origin")).toBe("*")
+    expect(getRes.headers.get("access-control-allow-credentials")).toBeNull()
 
     const preflightRes = await app.request("/api/v1/items", {
       method: "OPTIONS",
@@ -87,6 +97,7 @@ describe("App E2E", () => {
     })
     expect(allowedRes.status).toBe(200)
     expect(allowedRes.headers.get("access-control-allow-origin")).toBe("https://app.example.com")
+    expect(allowedRes.headers.get("access-control-allow-credentials")).toBe("true")
     expect(allowedRes.headers.get("vary")).toContain("Origin")
 
     const preflightRes = await app.request("/api/v1/items", {

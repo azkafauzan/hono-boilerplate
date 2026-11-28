@@ -1,14 +1,16 @@
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 import type { Database } from "@/db"
 import type { CreateItemDto, UpdateItemDto } from "./items.dto"
 import { type ItemEntity, items } from "./items.entity"
 
+export type CreateItemInput = CreateItemDto & { userId: number }
+
 export interface ItemsRepository {
   findAll(): Promise<ItemEntity[]>
   findById(id: string): Promise<ItemEntity | undefined>
-  create(data: CreateItemDto): Promise<ItemEntity>
-  update(id: string, data: UpdateItemDto): Promise<ItemEntity | undefined>
-  delete(id: string): Promise<boolean>
+  create(data: CreateItemInput): Promise<ItemEntity>
+  update(id: string, userId: number, data: UpdateItemDto): Promise<ItemEntity | undefined>
+  delete(id: string, userId: number): Promise<boolean>
 }
 
 export class DrizzleItemsRepository implements ItemsRepository {
@@ -23,7 +25,7 @@ export class DrizzleItemsRepository implements ItemsRepository {
     return item
   }
 
-  async create(data: CreateItemDto): Promise<ItemEntity> {
+  async create(data: CreateItemInput): Promise<ItemEntity> {
     const [created] = await this.db.insert(items).values(data).returning()
     if (!created) {
       throw new Error("Failed to create item")
@@ -31,17 +33,20 @@ export class DrizzleItemsRepository implements ItemsRepository {
     return created
   }
 
-  async update(id: string, data: UpdateItemDto): Promise<ItemEntity | undefined> {
+  async update(id: string, userId: number, data: UpdateItemDto): Promise<ItemEntity | undefined> {
     const [updated] = await this.db
       .update(items)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(items.id, id))
+      .where(and(eq(items.id, id), eq(items.userId, userId)))
       .returning()
     return updated
   }
 
-  async delete(id: string): Promise<boolean> {
-    const deleted = await this.db.delete(items).where(eq(items.id, id)).returning({ id: items.id })
+  async delete(id: string, userId: number): Promise<boolean> {
+    const deleted = await this.db
+      .delete(items)
+      .where(and(eq(items.id, id), eq(items.userId, userId)))
+      .returning({ id: items.id })
     return deleted.length > 0
   }
 }

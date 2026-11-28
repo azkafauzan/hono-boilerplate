@@ -2,6 +2,26 @@ import { z } from "zod"
 
 const DEFAULT_DEV_DATABASE_URL = "postgres://postgres:postgres@localhost:5432/app"
 const DEFAULT_DEV_CORS_ORIGIN = "*"
+const DEFAULT_DEV_BETTER_AUTH_SECRET = "dev-only-better-auth-secret-change-in-production-32chars"
+const MIN_BETTER_AUTH_SECRET_LENGTH = 32
+
+const optionalNonEmptyString = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const trimmed = value?.trim()
+    return trimmed && trimmed.length > 0 ? trimmed : undefined
+  })
+
+function parseHttpUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null
+    return url.toString().replace(/\/$/, "")
+  } catch {
+    return null
+  }
+}
 
 function parseCorsOrigin(raw: string): string | string[] | null {
   const entries = raw
@@ -49,6 +69,8 @@ const envSchema = z
       .default("info"),
     DATABASE_URL: z.string().min(1).optional(),
     CORS_ORIGIN: z.string().optional(),
+    BETTER_AUTH_SECRET: optionalNonEmptyString,
+    BETTER_AUTH_URL: optionalNonEmptyString,
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production" && !data.DATABASE_URL) {
@@ -72,6 +94,35 @@ const envSchema = z
           'CORS_ORIGIN must be "*" or a comma-separated list of valid http(s) origins without paths',
       })
     }
+    if (data.NODE_ENV === "production" && !data.BETTER_AUTH_SECRET) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_SECRET"],
+        message: "BETTER_AUTH_SECRET is required in production",
+      })
+    } else if (
+      data.BETTER_AUTH_SECRET !== undefined &&
+      data.BETTER_AUTH_SECRET.length < MIN_BETTER_AUTH_SECRET_LENGTH
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_SECRET"],
+        message: `BETTER_AUTH_SECRET must be at least ${MIN_BETTER_AUTH_SECRET_LENGTH} characters`,
+      })
+    }
+    if (data.NODE_ENV === "production" && !data.BETTER_AUTH_URL) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_URL"],
+        message: "BETTER_AUTH_URL is required in production",
+      })
+    } else if (data.BETTER_AUTH_URL !== undefined && parseHttpUrl(data.BETTER_AUTH_URL) === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["BETTER_AUTH_URL"],
+        message: "BETTER_AUTH_URL must be a valid http(s) URL",
+      })
+    }
   })
   .transform((data) => ({
     ...data,
@@ -80,6 +131,11 @@ const envSchema = z
       data.CORS_ORIGIN !== undefined
         ? (parseCorsOrigin(data.CORS_ORIGIN) ?? DEFAULT_DEV_CORS_ORIGIN)
         : DEFAULT_DEV_CORS_ORIGIN,
+    BETTER_AUTH_SECRET: data.BETTER_AUTH_SECRET ?? DEFAULT_DEV_BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL:
+      data.BETTER_AUTH_URL !== undefined
+        ? (parseHttpUrl(data.BETTER_AUTH_URL) ?? `http://localhost:${data.PORT}`)
+        : `http://localhost:${data.PORT}`,
   }))
 
 export type Env = z.infer<typeof envSchema>

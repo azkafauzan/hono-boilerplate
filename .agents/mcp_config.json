@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "better-auth": {
+      "serverUrl": "https://mcp.better-auth.com/mcp"
+    }
+  }
+}

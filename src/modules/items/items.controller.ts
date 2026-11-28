@@ -1,6 +1,9 @@
 import { createRoute } from "@hono/zod-openapi"
+import type { MiddlewareHandler } from "hono"
 import { ErrorResponseSchema } from "@/common/dto/error.dto"
+import { UnauthorizedException } from "@/common/exceptions/http.exception"
 import { createRouter } from "@/common/router"
+import type { AppEnv } from "@/common/types"
 import {
   CreateItemDtoSchema,
   ItemIdParamSchema,
@@ -53,6 +56,7 @@ const createItemRoute = createRoute({
   path: "/",
   tags: ["Items"],
   summary: "Create a new item",
+  security: [{ CookieAuth: [] }],
   request: {
     body: {
       required: true,
@@ -68,6 +72,10 @@ const createItemRoute = createRoute({
       description: "Validation failed",
       content: { "application/json": { schema: ErrorResponseSchema } },
     },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
   },
 })
 
@@ -76,6 +84,7 @@ const updateItemRoute = createRoute({
   path: "/{id}",
   tags: ["Items"],
   summary: "Update an existing item",
+  security: [{ CookieAuth: [] }],
   request: {
     params: ItemIdParamSchema,
     body: {
@@ -92,6 +101,14 @@ const updateItemRoute = createRoute({
       description: "Validation failed",
       content: { "application/json": { schema: ErrorResponseSchema } },
     },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
     404: {
       description: "Item not found",
       content: { "application/json": { schema: ErrorResponseSchema } },
@@ -104,6 +121,7 @@ const deleteItemRoute = createRoute({
   path: "/{id}",
   tags: ["Items"],
   summary: "Delete an item",
+  security: [{ CookieAuth: [] }],
   request: {
     params: ItemIdParamSchema,
   },
@@ -115,6 +133,14 @@ const deleteItemRoute = createRoute({
       description: "Invalid item ID",
       content: { "application/json": { schema: ErrorResponseSchema } },
     },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
     404: {
       description: "Item not found",
       content: { "application/json": { schema: ErrorResponseSchema } },
@@ -122,8 +148,16 @@ const deleteItemRoute = createRoute({
   },
 })
 
-export function createItemsController(itemsService: ItemsService) {
-  return createRouter()
+export function createItemsController(
+  itemsService: ItemsService,
+  requireAuth: MiddlewareHandler<AppEnv>,
+) {
+  const router = createRouter()
+  router.post("/", requireAuth)
+  router.patch("/:id", requireAuth)
+  router.delete("/:id", requireAuth)
+
+  return router
     .openapi(listItemsRoute, async (c) => {
       const items = await itemsService.findAll()
       return c.json({ data: items.map(toItemResponse) }, 200)
@@ -134,19 +168,25 @@ export function createItemsController(itemsService: ItemsService) {
       return c.json(toItemResponse(item), 200)
     })
     .openapi(createItemRoute, async (c) => {
+      const authUser = c.get("authUser")
+      if (!authUser) throw new UnauthorizedException("Authentication required")
       const dto = c.req.valid("json")
-      const created = await itemsService.create(dto)
+      const created = await itemsService.create(authUser.id, dto)
       return c.json(toItemResponse(created), 201)
     })
     .openapi(updateItemRoute, async (c) => {
+      const authUser = c.get("authUser")
+      if (!authUser) throw new UnauthorizedException("Authentication required")
       const { id } = c.req.valid("param")
       const dto = c.req.valid("json")
-      const updated = await itemsService.update(id, dto)
+      const updated = await itemsService.update(id, authUser.id, dto)
       return c.json(toItemResponse(updated), 200)
     })
     .openapi(deleteItemRoute, async (c) => {
+      const authUser = c.get("authUser")
+      if (!authUser) throw new UnauthorizedException("Authentication required")
       const { id } = c.req.valid("param")
-      await itemsService.remove(id)
+      await itemsService.remove(id, authUser.id)
       return c.body(null, 204)
     })
 }

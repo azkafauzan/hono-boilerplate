@@ -12,6 +12,7 @@ export const ItemIdParamSchema = z.object({
 export const ItemResponseSchema = createSelectSchema(items, {
   id: z.uuid().openapi({ example: "0194f0c4-0000-7000-8000-000000000000" }),
   name: z.string().openapi({ example: "Mechanical Keyboard" }),
+  userId: z.number().int().positive().openapi({ example: 1 }),
   createdAt: z.iso.datetime().openapi({ example: "2026-11-24T00:00:00.000Z" }),
   updatedAt: z.iso.datetime().openapi({ example: "2026-11-24T00:00:00.000Z" }),
 }).openapi("Item")
@@ -25,7 +26,7 @@ export const ItemListResponseSchema = z
 export const CreateItemDtoSchema = createInsertSchema(items, {
   name: (schema) => schema.trim().min(1).max(100).openapi({ example: "Mechanical Keyboard" }),
 })
-  .omit({ id: true, createdAt: true, updatedAt: true })
+  .omit({ id: true, userId: true, createdAt: true, updatedAt: true })
   .openapi("CreateItemDto")
 
 export const UpdateItemDtoSchema = CreateItemDtoSchema.partial()
@@ -42,6 +43,7 @@ export function toItemResponse(entity: ItemEntity): ItemResponse {
   return {
     id: entity.id,
     name: entity.name,
+    userId: entity.userId,
     createdAt: entity.createdAt.toISOString(),
     updatedAt: entity.updatedAt.toISOString(),
   }
