@@ -1,8 +1,12 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "bun:test"
 import { verifyPassword } from "better-auth/crypto"
 import { eq } from "drizzle-orm"
-import { ConflictException, NotFoundException } from "@/common/exceptions/http.exception"
-import { accounts } from "@/db/schema"
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@/common/exceptions/http.exception"
+import { accounts, items, sessions } from "@/db/schema"
 import { DrizzleUsersRepository } from "@/modules/users/users.repository"
 import { UsersService } from "@/modules/users/users.service"
 import { cleanupTestDb, createTestDb } from "../helper/db"
@@ -65,5 +69,65 @@ describe("UsersService", () => {
 
   it("throws NotFoundException when user ID does not exist", async () => {
     await expect(service.findById(999_999)).rejects.toBeInstanceOf(NotFoundException)
+  })
+
+  it("updates a user's name and rejects empty names or unknown IDs", async () => {
+    const created = await service.create({
+      name: "Alice",
+      email: "alice@example.com",
+      password: "Str0ng!Password",
+    })
+
+    const updated = await service.updateName(created.id, { name: "  Alice Updated  " })
+    expect(updated.id).toBe(created.id)
+    expect(updated.name).toBe("Alice Updated")
+    expect(updated.email).toBe("alice@example.com")
+
+    const reloaded = await service.findById(created.id)
+    expect(reloaded.name).toBe("Alice Updated")
+
+    await expect(service.updateName(created.id, { name: "   " })).rejects.toBeInstanceOf(
+      BadRequestException,
+    )
+    await expect(service.updateName(999_999, { name: "Ghost" })).rejects.toBeInstanceOf(
+      NotFoundException,
+    )
+  })
+
+  it("deletes user and cascades deletion to owned items, sessions, and accounts without affecting other users", async () => {
+    const alice = await service.create({
+      name: "Alice",
+      email: "alice@example.com",
+      password: "Str0ng!Password",
+    })
+    const bob = await service.create({
+      name: "Bob",
+      email: "bob@example.com",
+      password: "Str0ng!Password",
+    })
+
+    await db.insert(items).values([
+      { name: "Alice Keyboard", userId: alice.id },
+      { name: "Alice Mouse", userId: alice.id },
+      { name: "Bob Monitor", userId: bob.id },
+    ])
+    await db.insert(sessions).values({
+      token: "alice-session-token",
+      userId: alice.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    })
+
+    await service.remove(alice.id)
+
+    await expect(service.findById(alice.id)).rejects.toBeInstanceOf(NotFoundException)
+    expect(await db.select().from(items).where(eq(items.userId, alice.id))).toHaveLength(0)
+    expect(await db.select().from(sessions).where(eq(sessions.userId, alice.id))).toHaveLength(0)
+    expect(await db.select().from(accounts).where(eq(accounts.userId, alice.id))).toHaveLength(0)
+
+    const bobItems = await db.select().from(items).where(eq(items.userId, bob.id))
+    expect(bobItems).toHaveLength(1)
+    expect(bobItems[0]?.name).toBe("Bob Monitor")
+
+    await expect(service.remove(alice.id)).rejects.toBeInstanceOf(NotFoundException)
   })
 })

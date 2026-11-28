@@ -19,7 +19,7 @@ describe("App E2E", () => {
     expect(docRes.status).toBe(200)
     const doc = (await docRes.json()) as {
       openapi: string
-      paths: Record<string, unknown>
+      paths: Record<string, Record<string, unknown>>
       components?: { securitySchemes?: Record<string, unknown> }
     }
     expect(doc.openapi).toBe("3.1.0")
@@ -29,7 +29,9 @@ describe("App E2E", () => {
     expect(doc.paths["/api/v1/auth/signout"]).toBeDefined()
     expect(doc.paths["/api/v1/auth/me"]).toBeDefined()
     expect(doc.paths["/api/v1/auth/reset-password"]).toBeDefined()
-    expect(doc.paths["/api/v1/users/me"]).toBeDefined()
+    expect(doc.paths["/api/v1/users/me"]?.get).toBeDefined()
+    expect(doc.paths["/api/v1/users/me"]?.patch).toBeDefined()
+    expect(doc.paths["/api/v1/users/me"]?.delete).toBeDefined()
     expect(doc.paths["/api/v1/users/{id}"]).toBeDefined()
     expect(doc.paths["/api/v1/items"]).toBeDefined()
     expect(doc.components?.securitySchemes?.CookieAuth).toBeDefined()

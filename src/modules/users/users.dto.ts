@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi"
-import { createSelectSchema } from "@/db/zod"
+import { createInsertSchema, createSelectSchema } from "@/db/zod"
 import { type UserEntity, users } from "./users.entity"
 
 export const UserIdParamSchema = z.object({
@@ -23,12 +23,19 @@ export const UserResponseSchema = createSelectSchema(users, {
   updatedAt: z.iso.datetime().openapi({ example: "2026-11-28T00:00:00.000Z" }),
 }).openapi("User")
 
+export const UpdateUserNameDtoSchema = createInsertSchema(users, {
+  name: (schema) => schema.trim().min(1).max(100).openapi({ example: "Alice Updated" }),
+})
+  .pick({ name: true })
+  .openapi("UpdateUserNameDto")
+
 export interface CreateUserInput {
   name: string
   email: string
   password: string
 }
 
+export type UpdateUserNameDto = z.infer<typeof UpdateUserNameDtoSchema>
 export type UserResponse = z.infer<typeof UserResponseSchema>
 
 export function toUserResponse(entity: UserEntity): UserResponse {

@@ -49,6 +49,9 @@ describe("Auth helpers, service, and session guard", () => {
         expect(data.passwordHash).not.toBe("Str0ng!Password")
         return createdUser
       },
+      updateName: async (id, name) =>
+        id === createdUser.id ? { ...createdUser, name } : undefined,
+      delete: async (id) => id === createdUser.id,
     }
 
     const fakeHeaders = new Headers()

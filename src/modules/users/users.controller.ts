@@ -4,7 +4,12 @@ import { ErrorResponseSchema } from "@/common/dto/error.dto"
 import { UnauthorizedException } from "@/common/exceptions/http.exception"
 import { createRouter } from "@/common/router"
 import type { AppEnv } from "@/common/types"
-import { toUserResponse, UserIdParamSchema, UserResponseSchema } from "./users.dto"
+import {
+  toUserResponse,
+  UpdateUserNameDtoSchema,
+  UserIdParamSchema,
+  UserResponseSchema,
+} from "./users.dto"
 import type { UsersService } from "./users.service"
 
 const getMeRoute = createRoute({
@@ -20,6 +25,59 @@ const getMeRoute = createRoute({
     },
     401: {
       description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+  },
+})
+
+const updateMeRoute = createRoute({
+  method: "patch",
+  path: "/me",
+  tags: ["Users"],
+  summary: "Update the currently authenticated user's name",
+  security: [{ CookieAuth: [] }],
+  request: {
+    body: {
+      required: true,
+      content: { "application/json": { schema: UpdateUserNameDtoSchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "User name updated",
+      content: { "application/json": { schema: UserResponseSchema } },
+    },
+    400: {
+      description: "Validation failed",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    404: {
+      description: "User not found",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+  },
+})
+
+const deleteMeRoute = createRoute({
+  method: "delete",
+  path: "/me",
+  tags: ["Users"],
+  summary: "Delete the currently authenticated user and all owned items",
+  security: [{ CookieAuth: [] }],
+  responses: {
+    204: {
+      description: "User and owned items deleted",
+    },
+    401: {
+      description: "Authentication required",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
+    404: {
+      description: "User not found",
       content: { "application/json": { schema: ErrorResponseSchema } },
     },
   },
@@ -67,6 +125,19 @@ export function createUsersController(
       if (!authUser) throw new UnauthorizedException("Authentication required")
       const user = await usersService.findById(authUser.id)
       return c.json(toUserResponse(user), 200)
+    })
+    .openapi(updateMeRoute, async (c) => {
+      const authUser = c.get("authUser")
+      if (!authUser) throw new UnauthorizedException("Authentication required")
+      const dto = c.req.valid("json")
+      const updated = await usersService.updateName(authUser.id, dto)
+      return c.json(toUserResponse(updated), 200)
+    })
+    .openapi(deleteMeRoute, async (c) => {
+      const authUser = c.get("authUser")
+      if (!authUser) throw new UnauthorizedException("Authentication required")
+      await usersService.remove(authUser.id)
+      return c.body(null, 204)
     })
     .openapi(getUserByIdRoute, async (c) => {
       const { id } = c.req.valid("param")

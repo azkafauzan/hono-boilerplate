@@ -13,6 +13,8 @@ export interface UsersRepository {
   findById(id: number): Promise<UserEntity | undefined>
   findByEmail(email: string): Promise<UserEntity | undefined>
   createWithCredential(data: CreateUserWithCredentialInput): Promise<UserEntity>
+  updateName(id: number, name: string): Promise<UserEntity | undefined>
+  delete(id: number): Promise<boolean>
 }
 
 export class DrizzleUsersRepository implements UsersRepository {
@@ -51,5 +53,20 @@ export class DrizzleUsersRepository implements UsersRepository {
 
       return created
     })
+  }
+
+  async updateName(id: number, name: string): Promise<UserEntity | undefined> {
+    const [updated] = await this.db
+      .update(users)
+      .set({ name, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning()
+    return updated
+  }
+
+  async delete(id: number): Promise<boolean> {
+    // Owned items, sessions, and accounts are removed atomically via FK ON DELETE CASCADE.
+    const deleted = await this.db.delete(users).where(eq(users.id, id)).returning({ id: users.id })
+    return deleted.length > 0
   }
 }

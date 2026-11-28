@@ -1,6 +1,10 @@
 import { hashPassword } from "better-auth/crypto"
-import { ConflictException, NotFoundException } from "@/common/exceptions/http.exception"
-import type { CreateUserInput } from "./users.dto"
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@/common/exceptions/http.exception"
+import type { CreateUserInput, UpdateUserNameDto } from "./users.dto"
 import type { UserEntity } from "./users.entity"
 import type { UsersRepository } from "./users.repository"
 
@@ -50,6 +54,25 @@ export class UsersService {
         throw new ConflictException("Email already registered")
       }
       throw err
+    }
+  }
+
+  async updateName(id: number, input: UpdateUserNameDto): Promise<UserEntity> {
+    const name = input.name.trim()
+    if (name.length === 0) {
+      throw new BadRequestException("Name cannot be empty")
+    }
+    const updated = await this.usersRepository.updateName(id, name)
+    if (!updated) {
+      throw new NotFoundException(`User ${id} not found`)
+    }
+    return updated
+  }
+
+  async remove(id: number): Promise<void> {
+    const deleted = await this.usersRepository.delete(id)
+    if (!deleted) {
+      throw new NotFoundException(`User ${id} not found`)
     }
   }
 }
